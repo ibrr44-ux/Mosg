@@ -1,12 +1,22 @@
 // ---------- Tabs & Dark Mode ----------
-document.querySelectorAll('.tab-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
+function switchTab(tabId) {
+  var btn = document.querySelector('.tab-btn[data-tab="' + tabId + '"]');
+  if (btn) {
     if (html5QrCode) { stopCameraScanner(); }
     document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
     document.querySelectorAll('section').forEach(function(s) { s.classList.remove('active'); });
     btn.classList.add('active');
-    var target = document.getElementById(btn.dataset.tab);
-    if (target) target.classList.add('active');
+    var target = document.getElementById(tabId);
+    if (target) {
+      target.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+}
+
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    switchTab(btn.dataset.tab);
   });
 });
 
@@ -99,6 +109,8 @@ window.addEventListener('DOMContentLoaded', function() {
     return App.refresh();
   }).then(function() {
     renderFileSystemStatus();
+    // Show startup alerts after a short delay
+    setTimeout(function() { showStartupAlerts(); }, 1200);
   }).catch(function(err) {
     console.error('Init error:', err);
     document.body.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--danger)"><i class="fas fa-exclamation-triangle"></i><p>' + t('initError') + '</p></div>';

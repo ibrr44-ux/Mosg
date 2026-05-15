@@ -170,6 +170,9 @@ var translations = {
     statusOpen: 'مفتوح',
     statusInProgress: 'قيد الإصلاح',
     statusResolved: 'تم الإصلاح',
+    techName: 'اسم الفني / الجهة',
+    techPhone: 'رقم جوال الفني',
+    maintOverdue: 'صيانة متأخرة!',
     saveRecord: 'حفظ السجل',
     // Equipment efficiency
     effExcellent: 'كفاءة ممتازة',
@@ -452,6 +455,9 @@ var translations = {
     statusOpen: 'Open',
     statusInProgress: 'In Progress',
     statusResolved: 'Resolved',
+    techName: 'Technician Name',
+    techPhone: 'Technician Phone',
+    maintOverdue: 'Maintenance Overdue!',
     saveRecord: 'Save Record',
     // Equipment efficiency
     effExcellent: 'Excellent Efficiency',

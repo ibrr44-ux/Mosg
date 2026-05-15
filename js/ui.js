@@ -112,29 +112,63 @@ var App = {
         var priorityColor = taskItem.priority === 'high' ? 'var(--danger)' : taskItem.priority === 'low' ? 'var(--info)' : 'var(--warning)';
         html += '<div class="list-item-glass" style="border-right-color: ' + priorityColor + '">';
         html += '<div style="display:flex;align-items:center;gap:12px;">';
-        html += '<input type="checkbox" ' + (taskItem.completed ? 'checked' : '') + ' onchange="toggleTaskComplete(' + JSON.stringify(String(taskItem.id)) + ', this.checked)" style="width:20px;height:20px;accent-color:var(--primary);cursor:pointer;margin:0">';
+        html += '<input type="checkbox" ' + (taskItem.completed ? 'checked' : '') + ' onchange="toggleTaskComplete(\'' + taskItem.id + '\', this.checked)" style="width:20px;height:20px;accent-color:var(--primary);cursor:pointer;margin:0">';
         html += '<div style="' + (taskItem.completed ? 'text-decoration:line-through;opacity:0.6' : '') + '"><strong>' + escapeHtml(taskItem.title) + '</strong><br><span style="font-size:0.8rem;color:var(--text-muted)">' + (taskItem.period === 'morning' ? t('taskMorning') : taskItem.period === 'afternoon' ? t('taskAfternoon') : t('taskEvening')) + '</span></div>';
         html += '</div>';
-        html += '<div><button onclick="openModal(\'task\', ' + JSON.stringify(String(taskItem.id)) + ')" class="btn btn-outline"><i class="fas fa-edit"></i></button> ';
-        html += '<button onclick="deleteItem(\'tasks\', ' + JSON.stringify(String(taskItem.id)) + ')" class="btn btn-danger"><i class="fas fa-trash"></i></button></div>';
+        html += '<div><button onclick="openModal(\'task\', \'' + taskItem.id + '\')" class="btn btn-outline"><i class="fas fa-edit"></i></button> ';
+        html += '<button onclick="deleteItem(\'tasks\', \'' + taskItem.id + '\')" class="btn btn-danger"><i class="fas fa-trash"></i></button></div>';
         html += '</div>';
       });
     }
     document.getElementById('task-list').innerHTML = html;
   },
   renderIssues: function(issues) {
-    var active = issues.filter(function(i) { return i.status !== 'resolved'; });
     var html = '';
-    if (active.length === 0) {
-      html = '<div class="empty-state"><i class="fas fa-tools"></i><p>' + t('emptyIssues') + '</p></div>';
+    // Filter bar
+    var currentFilter = window._issueFilter || 'open';
+    html += '<div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">';
+    html += '<button onclick="setIssueFilter(\'open\')" class="btn ' + (currentFilter === 'open' ? 'btn-danger' : 'btn-outline') + '" style="font-size:0.8rem;padding:6px 12px"><i class="fas fa-exclamation-circle"></i> ' + t('issuePending') + ' (' + issues.filter(function(i){return i.status !== 'resolved' && !i.archived;}).length + ')</button>';
+    html += '<button onclick="setIssueFilter(\'resolved\')" class="btn ' + (currentFilter === 'resolved' ? 'btn-success' : 'btn-outline') + '" style="font-size:0.8rem;padding:6px 12px"><i class="fas fa-check-circle"></i> ' + t('statusResolved') + ' (' + issues.filter(function(i){return i.status === 'resolved' && !i.archived;}).length + ')</button>';
+    html += '<button onclick="setIssueFilter(\'archived\')" class="btn ' + (currentFilter === 'archived' ? '' : 'btn-outline') + '" style="font-size:0.8rem;padding:6px 12px;' + (currentFilter === 'archived' ? 'background:var(--text-muted);color:white;' : '') + '"><i class="fas fa-archive"></i> ' + t('archivedEq') + ' (' + issues.filter(function(i){return i.archived;}).length + ')</button>';
+    html += '</div>';
+
+    var filtered = issues.filter(function(i) {
+      if (currentFilter === 'open') return i.status !== 'resolved' && !i.archived;
+      if (currentFilter === 'resolved') return i.status === 'resolved' && !i.archived;
+      if (currentFilter === 'archived') return !!i.archived;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      html += '<div class="empty-state"><i class="fas fa-tools"></i><p>' + t('emptyIssues') + '</p></div>';
     } else {
-      active.forEach(function(i) {
-        html += '<div class="list-item-glass" style="border-right-color: var(--danger)">';
-        html += '<div><span class="badge-modern" style="background:#fef2f2;color:var(--danger);margin-bottom:8px;">' + t('issuePending') + '</span>';
-        html += '<strong>' + escapeHtml(i.location) + (i.equipment ? ' - ' + escapeHtml(i.equipment) : '') + '</strong><br><span style="font-size:0.85rem">' + escapeHtml(i.desc) + '</span></div>';
-        html += '<div style="display:flex;gap:8px;"><button onclick="resolveIssue(' + JSON.stringify(String(i.id)) + ')" class="btn btn-success"><i class="fas fa-check"></i> ' + t('issueResolved') + '</button>';
-        html += '<button onclick="openModal(\'issue\', ' + JSON.stringify(String(i.id)) + ')" class="btn btn-outline"><i class="fas fa-edit"></i></button></div>';
+      filtered.forEach(function(i) {
+        var isResolved = i.status === 'resolved';
+        var borderColor = i.archived ? 'var(--text-muted)' : (isResolved ? 'var(--success)' : 'var(--danger)');
+        html += '<div class="list-item-glass" style="border-right-color: ' + borderColor + '">';
+        html += '<div>';
+        if (i.archived) {
+          html += '<span class="badge-modern" style="background:#f1f5f9;color:var(--text-muted);margin-bottom:8px;"><i class="fas fa-archive"></i> ' + t('archivedEq') + '</span>';
+        } else if (isResolved) {
+          html += '<span class="badge-modern" style="background:#f0fdf4;color:var(--success);margin-bottom:8px;"><i class="fas fa-check-circle"></i> ' + t('statusResolved') + '</span>';
+          if (i.resolvedAt) html += '<span style="font-size:0.75rem;color:var(--text-muted);margin-right:8px;">' + formatDate(i.resolvedAt) + '</span>';
+        } else {
+          html += '<span class="badge-modern" style="background:#fef2f2;color:var(--danger);margin-bottom:8px;">' + t('issuePending') + '</span>';
+        }
+        html += '<strong>' + escapeHtml(i.location) + (i.equipment ? ' - ' + escapeHtml(i.equipment) : '') + '</strong><br><span style="font-size:0.85rem">' + escapeHtml(i.desc) + '</span>';
+        if (i.technician) {
+          html += '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;"><i class="fas fa-user-cog"></i> ' + escapeHtml(i.technician) + (i.techPhone ? ' (' + escapeHtml(i.techPhone) + ')' : '') + (i.cost > 0 ? ' • <i class="fas fa-coins"></i> ' + formatCurrency(i.cost) : '') + '</div>';
+        }
         html += '</div>';
+        html += '<div style="display:flex;gap:8px;flex-direction:column;align-items:flex-end;">';
+        if (!isResolved && !i.archived) {
+          html += '<button onclick="promptResolveIssue(\'' + i.id + '\')" class="btn btn-success" style="font-size:0.8rem;padding:6px 10px"><i class="fas fa-check"></i> ' + t('issueResolved') + '</button>';
+          html += '<button onclick="openModal(\'issue\', \'' + i.id + '\')" class="btn btn-outline" style="font-size:0.8rem;padding:6px 10px"><i class="fas fa-edit"></i></button>';
+        }
+        if (isResolved && !i.archived) {
+          html += '<button onclick="archiveIssue(\'' + i.id + '\')" class="btn btn-outline" style="font-size:0.8rem;padding:6px 10px;color:var(--text-muted)"><i class="fas fa-archive"></i></button>';
+        }
+        html += '</div></div>';
       });
     }
     document.getElementById('issue-list').innerHTML = html;
@@ -150,7 +184,7 @@ var App = {
         html += '<div class="list-item-glass" style="border-right-color: ' + (isInc ? 'var(--success)' : 'var(--danger)') + '">';
         html += '<div><strong>' + escapeHtml(f.desc || f.name) + '</strong><br><span style="font-size:0.8rem;color:var(--text-muted)">' + formatDate(f.date) + (f.category ? ' - ' + escapeHtml(f.category) : '') + (f.autoGenerated ? ' <i class="fas fa-robot" title="Auto Generated"></i>' : '') + '</span></div>';
         html += '<div style="display:flex;align-items:center;gap:12px;"><span style="font-weight:700;color:' + (isInc ? 'var(--success)' : 'var(--danger)') + '">' + (isInc ? '+' : '-') + formatCurrency(f.amount) + '</span>';
-        html += '<button onclick="deleteItem(\'finances\', ' + JSON.stringify(String(f.id)) + ')" class="btn btn-danger" style="padding:6px 10px"><i class="fas fa-trash"></i></button></div>';
+        html += '<button onclick="deleteItem(\'finances\', \'' + f.id + '\')" class="btn btn-danger" style="padding:6px 10px"><i class="fas fa-trash"></i></button></div>';
         html += '</div>';
       });
     }
@@ -169,11 +203,11 @@ var App = {
     } else {
       filtered.forEach(function(e) {
         var est = parseFloat(e.estimatedValue) || 0;
-        html += '<div class="list-item-glass" onclick="showEquipmentDetailById(' + JSON.stringify(String(e.id)) + ')" style="cursor:pointer;border-right-color:var(--primary-light)">';
+        html += '<div class="list-item-glass" onclick="showEquipmentDetailById(\'' + e.id + '\')" style="cursor:pointer;border-right-color:var(--primary-light)">';
         html += '<div><strong>' + escapeHtml(e.name) + '</strong> <span style="font-family:monospace;font-size:0.75rem;color:var(--primary);background:var(--primary-glow);padding:2px 6px;border-radius:4px;">' + escapeHtml(e.uniqueId || '') + '</span><br>';
         html += '<span style="font-size:0.8rem;color:var(--text-muted)"><i class="fas fa-map-marker-alt"></i> ' + escapeHtml(e.location) + ' | <i class="fas fa-wallet"></i> ' + formatCurrency(est) + '</span></div>';
-        html += '<div><button onclick="event.stopPropagation(); openModal(\'equipment\', ' + JSON.stringify(String(e.id)) + ')" class="btn btn-outline" style="padding:6px 10px;margin-left:4px"><i class="fas fa-edit"></i></button>';
-        html += '<button onclick="event.stopPropagation(); deleteItem(\'equipment\', ' + JSON.stringify(String(e.id)) + ')" class="btn btn-danger" style="padding:6px 10px"><i class="fas fa-archive"></i></button></div>';
+        html += '<div><button onclick="event.stopPropagation(); openModal(\'equipment\', \'' + e.id + '\')" class="btn btn-outline" style="padding:6px 10px;margin-left:4px"><i class="fas fa-edit"></i></button>';
+        html += '<button onclick="event.stopPropagation(); deleteItem(\'equipment\', \'' + e.id + '\')" class="btn btn-danger" style="padding:6px 10px"><i class="fas fa-archive"></i></button></div>';
         html += '</div>';
       });
     }
@@ -195,9 +229,26 @@ var App = {
     }
   },
   renderDashboard: function(tasks, issues, finances, equipment) {
-    var today = new Date().toISOString().slice(0, 10);
-    document.getElementById('dash-tasks').textContent = tasks.filter(function(t) { return t.date === today && !t.completed; }).length;
-    document.getElementById('dash-issues').textContent = issues.filter(function(i) { return i.status !== 'resolved'; }).length;
+    var todayDate = new Date();
+    todayDate.setHours(0,0,0,0);
+    var todayStr = todayDate.toISOString().slice(0, 10);
+
+    var dashTasks = tasks.filter(function(t) { return t.date === todayStr && !t.completed; }).length;
+    var dashIssues = issues.filter(function(i) { return i.status !== 'resolved'; }).length;
+    
+    document.getElementById('dash-tasks').textContent = dashTasks;
+    document.getElementById('dash-issues').textContent = dashIssues;
+
+    // Make dashboard cards clickable
+    var taskCard = document.getElementById('dash-tasks').parentElement;
+    var issueCard = document.getElementById('dash-issues').parentElement;
+    var incomeCard = document.getElementById('dash-income').parentElement;
+    var balanceCard = document.getElementById('dash-balance').parentElement;
+
+    if (taskCard) taskCard.onclick = function() { switchTab('tasks'); };
+    if (issueCard) issueCard.onclick = function() { switchTab('issues'); };
+    if (incomeCard) incomeCard.onclick = function() { switchTab('finances'); };
+    if (balanceCard) balanceCard.onclick = function() { switchTab('finances'); };
 
     var inc = 0, exp = 0;
     finances.forEach(function(f) {
@@ -213,7 +264,7 @@ var App = {
     var recent = finances.slice(-3).reverse();
     if (recent.length === 0) actHtml = '<p style="color:var(--text-muted);text-align:center;font-size:0.85rem">' + t('noActivity') + '</p>';
     recent.forEach(function(f) {
-      actHtml += '<div style="font-size:0.85rem;padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">';
+      actHtml += '<div onclick="switchTab(\'finances\')" style="font-size:0.85rem;padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">';
       actHtml += '<span>' + escapeHtml(f.desc || f.name) + '</span>';
       actHtml += '<span style="color:' + (f.type === 'donation' ? 'var(--success)' : 'var(--danger)') + ';">' + (f.type === 'donation' ? '+' : '-') + formatCurrency(f.amount) + '</span></div>';
     });
@@ -223,12 +274,47 @@ var App = {
     var next7 = new Date(); next7.setDate(next7.getDate() + 7);
     var upcoming = equipment.filter(function(e) { return e.next && new Date(e.next) <= next7 && e.status !== 'archived'; });
     if (upcoming.length === 0) upcHtml = '<p style="color:var(--text-muted);text-align:center;font-size:0.85rem">' + t('noMaint') + '</p>';
-    upcoming.forEach(function(e) {
-      upcHtml += '<div style="font-size:0.85rem;padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">';
-      upcHtml += '<span>' + escapeHtml(e.name) + ' (' + escapeHtml(e.location) + ')</span>';
-      upcHtml += '<span style="color:var(--warning)">' + formatDate(e.next) + '</span></div>';
+    upcoming.sort(function(a, b) { return new Date(a.next) - new Date(b.next); }).forEach(function(e) {
+      var mDate = new Date(e.next);
+      mDate.setHours(0,0,0,0);
+      var isOverdue = mDate < todayDate;
+      var colorClass = isOverdue ? 'text-danger' : 'text-warning';
+      var icon = isOverdue ? '<i class="fas fa-exclamation-circle"></i> ' : '';
+      
+      upcHtml += '<div onclick="switchTab(\'inventory\'); showEquipmentDetailById(\'' + e.id + '\')" style="font-size:0.85rem;padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">';
+      upcHtml += '<span>' + icon + escapeHtml(e.name) + '</span>';
+      upcHtml += '<span class="' + colorClass + '" style="font-weight:700">' + (isOverdue ? t('late') : formatDate(e.next)) + '</span></div>';
     });
     document.getElementById('dash-upcoming').innerHTML = upcHtml;
+
+    // ---- Smart Stats ----
+    var statsEl = document.getElementById('dash-smart-stats');
+    if (statsEl) {
+      var openIssues = issues.filter(function(i) { return i.status !== 'resolved' && !i.archived; });
+      var overdueCount = upcoming.filter(function(e) { var d = new Date(e.next); d.setHours(0,0,0,0); return d < todayDate; }).length;
+
+      // Most faulty device
+      var deviceFaultMap = {};
+      issues.forEach(function(i) {
+        if (i.equipment) deviceFaultMap[i.equipment] = (deviceFaultMap[i.equipment] || 0) + 1;
+      });
+      var topDevice = Object.keys(deviceFaultMap).sort(function(a,b){return deviceFaultMap[b]-deviceFaultMap[a];})[0];
+
+      // Most used technician
+      var techMap = {};
+      issues.forEach(function(i) {
+        if (i.technician) techMap[i.technician] = (techMap[i.technician] || 0) + 1;
+      });
+      var topTech = Object.keys(techMap).sort(function(a,b){return techMap[b]-techMap[a];})[0];
+
+      var sHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+      sHtml += '<div style="background:var(--glass-bg);border-radius:10px;padding:10px;border:1px solid var(--border);"><div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;"><i class="fas fa-exclamation-triangle" style="color:var(--danger)"></i> ' + t('dashIssues') + '</div><div style="font-size:1.4rem;font-weight:800;color:var(--danger)">' + openIssues.length + '</div></div>';
+      sHtml += '<div style="background:var(--glass-bg);border-radius:10px;padding:10px;border:1px solid var(--border);"><div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;"><i class="fas fa-clock" style="color:var(--warning)"></i> صيانة متأخرة</div><div style="font-size:1.4rem;font-weight:800;color:var(--warning)">' + overdueCount + '</div></div>';
+      sHtml += '<div style="background:var(--glass-bg);border-radius:10px;padding:10px;border:1px solid var(--border);grid-column:span 2;"><div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;"><i class="fas fa-microchip" style="color:var(--primary)"></i> أكثر جهاز عطلاً</div><div style="font-size:0.95rem;font-weight:700;color:var(--text)">' + (topDevice ? escapeHtml(topDevice) + ' <span style="font-size:0.75rem;color:var(--text-muted)">(' + deviceFaultMap[topDevice] + ' مرة)</span>' : '<span style="color:var(--text-muted);font-size:0.85rem">لا يوجد بيانات</span>') + '</div></div>';
+      sHtml += '<div style="background:var(--glass-bg);border-radius:10px;padding:10px;border:1px solid var(--border);grid-column:span 2;"><div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;"><i class="fas fa-user-cog" style="color:var(--success)"></i> أكثر فني استخداماً</div><div style="font-size:0.95rem;font-weight:700;color:var(--text)">' + (topTech ? escapeHtml(topTech) + ' <span style="font-size:0.75rem;color:var(--text-muted)">(' + techMap[topTech] + ' مرة)</span>' : '<span style="color:var(--text-muted);font-size:0.85rem">لا يوجد بيانات</span>') + '</div></div>';
+      sHtml += '</div>';
+      statsEl.innerHTML = sHtml;
+    }
   },
   renderReports: function(issues, finances, equipment) {
     var inc = 0, exp = 0;
@@ -373,6 +459,11 @@ function openModal(type, id) {
     equipmentOptions.forEach(function(e) { html += '<option value="' + e.id + '">' + escapeHtml(e.name) + ' - ' + escapeHtml(e.location) + '</option>'; });
     html += '</select>';
     html += '<textarea id="issue-desc" placeholder="' + t('issueDesc') + '" required></textarea>';
+    html += '<div class="card-modern" style="background:rgba(0,0,0,0.03); padding:1rem; margin-bottom:1rem; border:1px dashed var(--border);">';
+    html += '<label style="font-size:0.8rem; font-weight:700; margin-bottom:0.5rem; display:block;">' + t('techHistory') + ' (اختياري)</label>';
+    html += '<input id="issue-tech" placeholder="' + t('techName') + '" style="margin-bottom:8px;">';
+    html += '<input id="issue-tech-phone" placeholder="' + t('techPhone') + '">';
+    html += '</div>';
     html += '<button onclick="saveModal()" class="btn btn-primary btn-full">' + t('save') + '</button>';
   } else if (type === 'donation') {
     html = '<div class="flex-between"><h3><i class="fas fa-hand-holding-usd"></i> ' + title + ' ' + t('donation') + '</h3><button onclick="closeModal()" style="background:none;border:none;font-size:24px;cursor:pointer">&times;</button></div>';
@@ -414,6 +505,8 @@ function openModal(type, id) {
         document.getElementById('issue-loc').value = item.location;
         document.getElementById('issue-eq').value = item.equipmentId || '';
         document.getElementById('issue-desc').value = item.desc;
+        document.getElementById('issue-tech').value = item.technician || '';
+        document.getElementById('issue-tech-phone').value = item.techPhone || '';
       } else if (type === 'donation') {
         document.getElementById('donor-name').value = item.name || '';
         document.getElementById('amount').value = item.amount;
@@ -460,13 +553,30 @@ function saveModal() {
     }
   } else if (type === 'issue') {
     var eqSelect = document.getElementById('issue-eq');
-    data = { location: document.getElementById('issue-loc').value, equipmentId: eqSelect.value ? parseInt(eqSelect.value) : null, equipment: eqSelect.options[eqSelect.selectedIndex].text.replace('-- اختر الجهاز --', '').replace('-- Select Equipment --', ''), desc: document.getElementById('issue-desc').value, date: new Date().toISOString(), status: 'open' };
+    data = { 
+      location: document.getElementById('issue-loc').value, 
+      equipmentId: eqSelect.value ? parseInt(eqSelect.value) : null, 
+      equipment: eqSelect.options[eqSelect.selectedIndex].text.replace('-- اختر الجهاز --', '').replace('-- Select Equipment --', ''), 
+      desc: document.getElementById('issue-desc').value, 
+      technician: document.getElementById('issue-tech').value,
+      techPhone: document.getElementById('issue-tech-phone').value,
+      date: new Date().toISOString(), 
+      status: 'open' 
+    };
     if (currentEdit.id) {
       promise = dbGetAll('issues').then(function(issues) {
         var old = issues.find(function(i) { return sameId(i.id, currentEdit.id); });
-        if (old) { data = Object.assign({}, old, data); }
-        if (!data.status) data.status = 'open';
-        return dbUpdate('issues', data);
+        if (old) { 
+          // Merge while keeping old ID and original date
+          var updatedData = Object.assign({}, old, data);
+          updatedData.date = old.date; // Keep original date
+          updatedData.id = old.id;
+          return dbUpdate('issues', updatedData);
+        } else {
+          // Fallback: Ensure ID is preserved even if 'old' lookup is tricky
+          data.id = isNaN(parseInt(currentEdit.id)) ? currentEdit.id : parseInt(currentEdit.id);
+          return dbUpdate('issues', data);
+        }
       });
     } else {
       promise = dbAdd('issues', data);
@@ -516,4 +626,201 @@ function saveModal() {
   if (promise) {
     promise.then(function() { App.refresh(); }).catch(function(err) { console.error('Save error:', err); });
   }
+}
+
+function promptResolveIssue(id) {
+  dbGetAll('issues').then(function(issues) {
+    var issue = issues.find(function(i) { return sameId(i.id, id); });
+    if (!issue) return;
+    
+    var modal = document.getElementById('universal-modal');
+    var content = document.getElementById('modal-content');
+    
+    var html = '<div class="flex-between"><h3><i class="fas fa-check-circle"></i> ' + t('issueResolved') + '</h3><button onclick="closeModal()" style="background:none;border:none;font-size:24px;cursor:pointer">&times;</button></div>';
+    html += '<p style="font-size:0.9rem; margin-bottom:1rem; color:var(--text-muted)">' + escapeHtml(issue.location) + ' - ' + escapeHtml(issue.desc) + '</p>';
+    html += '<label style="display:block; margin-bottom:4px; font-size:0.8rem; font-weight:700;">' + t('maintCost') + '</label>';
+    html += '<input type="number" id="resolve-cost" value="0" min="0" step="0.01" style="margin-bottom:1rem;">';
+    html += '<label style="display:block; margin-bottom:4px; font-size:0.8rem; font-weight:700;">' + t('techName') + '</label>';
+    html += '<input id="resolve-tech" value="' + escapeHtml(issue.technician || '') + '" style="margin-bottom:1rem;">';
+    html += '<label style="display:block; margin-bottom:4px; font-size:0.8rem; font-weight:700;">' + t('techPhone') + '</label>';
+    html += '<input id="resolve-phone" value="' + escapeHtml(issue.techPhone || '') + '" style="margin-bottom:1rem;">';
+    html += '<button id="confirm-resolve-btn" class="btn btn-success btn-full">' + t('issueResolved') + '</button>';
+    
+    content.innerHTML = html;
+    modal.style.display = 'flex';
+    
+    document.getElementById('confirm-resolve-btn').onclick = function() {
+      var cost = parseFloat(document.getElementById('resolve-cost').value) || 0;
+      var tech = document.getElementById('resolve-tech').value;
+      var phone = document.getElementById('resolve-phone').value;
+      
+      issue.cost = cost;
+      issue.technician = tech;
+      issue.techPhone = phone;
+      issue.status = 'resolved';
+      issue.resolvedAt = new Date().toISOString();
+      
+      dbUpdate('issues', issue).then(function() {
+        // Now trigger the same logic as resolveIssue but with data pre-filled
+        if (issue.equipmentId) {
+          return dbGetAll('equipment').then(function(list) {
+            var eq = list.find(function(e) { return sameId(e.id, issue.equipmentId); });
+            if (eq) {
+              eq.maintenanceHistory = eq.maintenanceHistory || [];
+              eq.maintenanceHistory.push({
+                id: 'maint_res_' + Date.now(),
+                date: issue.resolvedAt.slice(0, 10),
+                description: '[' + t('statusResolved') + '] ' + (issue.desc || ''),
+                cost: cost,
+                technician: tech,
+                status: 'resolved',
+                issueId: id
+              });
+              return dbUpdate('equipment', eq).then(function() {
+                if (cost > 0) {
+                  return handleFinanceForMaintenance(eq.name, issue.desc, cost, issue.resolvedAt.slice(0,10), 'issue_' + id, 0, eq.id);
+                }
+              });
+            }
+          });
+        }
+      }).then(function() {
+        closeModal();
+        App.refresh();
+      });
+    };
+  });
+}
+
+// ---------- Issue Filter ----------
+function setIssueFilter(filter) {
+  window._issueFilter = filter;
+  App.refresh();
+}
+
+// ---------- Archive Issue ----------
+function archiveIssue(id) {
+  dbGetAll('issues').then(function(issues) {
+    var issue = issues.find(function(i) { return sameId(i.id, id); });
+    if (!issue) return;
+    if (!confirm(currentLang === 'ar' ? 'هل تريد أرشفة هذا العطل؟ لن يظهر في القائمة الرئيسية.' : 'Archive this issue? It will be hidden from the main list.')) return;
+    issue.archived = true;
+    dbUpdate('issues', issue).then(function() { App.refresh(); });
+  });
+}
+
+// ---------- Startup Alert Banner ----------
+function showStartupAlerts() {
+  dbGetAll('issues').then(function(issues) {
+    var open = issues.filter(function(i) { return i.status !== 'resolved' && !i.archived; });
+    if (open.length === 0) return;
+    var bar = document.getElementById('startup-alert-bar');
+    var txt = document.getElementById('startup-alert-text');
+    if (!bar || !txt) return;
+    txt.innerHTML = '<i class="fas fa-exclamation-triangle"></i> تنبيه: لديك <strong>' + open.length + '</strong> عطل مفتوح يحتاج متابعة';
+    bar.style.display = 'block';
+    // Auto-hide after 8 seconds
+    setTimeout(function() {
+      if (bar) bar.style.display = 'none';
+    }, 8000);
+  });
+}
+
+// ---------- Export PDF Report ----------
+function exportPDFReport() {
+  Promise.all([dbGetAll('issues'), dbGetAll('finances'), dbGetAll('equipment')]).then(function(results) {
+    var issues = results[0], finances = results[1], equipment = results[2];
+    var inc = 0, exp = 0;
+    finances.forEach(function(f) {
+      if (f.type === 'donation') inc += parseFloat(f.amount || 0);
+      else exp += parseFloat(f.amount || 0);
+    });
+    var resolved = issues.filter(function(i) { return i.status === 'resolved'; }).length;
+    var open = issues.filter(function(i) { return i.status !== 'resolved' && !i.archived; }).length;
+    var totalMaintCost = issues.reduce(function(s, i) { return s + (parseFloat(i.cost) || 0); }, 0);
+
+    // Most faulty device
+    var deviceMap = {};
+    issues.forEach(function(i) { if (i.equipment) deviceMap[i.equipment] = (deviceMap[i.equipment] || 0) + 1; });
+    var topDevice = Object.keys(deviceMap).sort(function(a,b){return deviceMap[b]-deviceMap[a];})[0];
+
+    var dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+    var date = new Date().toLocaleDateString('ar-SA');
+
+    var win = window.open('', '_blank');
+    if (!win) { alert('يرجى السماح بالنوافذ المنبثقة'); return; }
+
+    var html = '<!DOCTYPE html><html dir="' + dir + '"><head><meta charset="UTF-8"><title>تقرير سادن المسجد</title><style>';
+    html += 'body{font-family:system-ui,sans-serif;margin:0;padding:20px;background:#f8fafc;color:#1e293b;direction:' + dir + '}';
+    html += '.header{background:linear-gradient(135deg,#0f766e,#0d9488);color:white;padding:24px;border-radius:16px;margin-bottom:20px;text-align:center;}';
+    html += '.header h1{margin:0;font-size:1.6rem} .header p{margin:4px 0 0;opacity:0.8;font-size:0.9rem}';
+    html += '.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px;}';
+    html += '.card{background:white;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.08);border-right:4px solid #0f766e;}';
+    html += '.card .num{font-size:2rem;font-weight:800;margin:4px 0} .card .label{font-size:0.8rem;color:#64748b}';
+    html += '.card.red{border-right-color:#ef4444} .card.green{border-right-color:#10b981} .card.yellow{border-right-color:#f59e0b}';
+    html += 'table{width:100%;border-collapse:collapse;background:white;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:20px;}';
+    html += 'th{background:#0f766e;color:white;padding:10px;font-size:0.85rem;text-align:right} td{padding:9px 10px;font-size:0.82rem;border-bottom:1px solid #f1f5f9}';
+    html += 'tr:last-child td{border:none} tr:hover td{background:#f8fafc}';
+    html += '.section-title{font-size:1rem;font-weight:700;margin:16px 0 8px;color:#0f766e;border-bottom:2px solid #e2e8f0;padding-bottom:6px;}';
+    html += '.footer{text-align:center;color:#94a3b8;font-size:0.75rem;margin-top:30px;}';
+    html += '@media print{body{padding:10px} .no-print{display:none}}';
+    html += '</style></head><body>';
+
+    html += '<div class="header">';
+    html += '<h1>📊 تقرير سادن المسجد</h1>';
+    html += '<p>تاريخ الإصدار: ' + date + (currentMosque ? ' • ' + escapeHtml(currentMosque) : '') + '</p>';
+    html += '</div>';
+
+    html += '<div class="grid">';
+    html += '<div class="card green"><div class="label">إجمالي الإيرادات</div><div class="num">' + formatCurrency(inc) + '</div></div>';
+    html += '<div class="card red"><div class="label">إجمالي المصروفات</div><div class="num">' + formatCurrency(exp) + '</div></div>';
+    html += '<div class="card"><div class="label">الرصيد الصافي</div><div class="num" style="color:' + (inc-exp>=0?'#10b981':'#ef4444') + '">' + formatCurrency(inc - exp) + '</div></div>';
+    html += '<div class="card yellow"><div class="label">تكاليف الصيانة</div><div class="num">' + formatCurrency(totalMaintCost) + '</div></div>';
+    html += '<div class="card red"><div class="label">أعطال مفتوحة</div><div class="num">' + open + '</div></div>';
+    html += '<div class="card green"><div class="label">أعطال تم إصلاحها</div><div class="num">' + resolved + '</div></div>';
+    html += '</div>';
+
+    if (topDevice) {
+      html += '<div style="background:white;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:20px;">';
+      html += '<div style="font-size:0.8rem;color:#64748b;">أكثر جهاز عطلاً</div>';
+      html += '<div style="font-size:1.1rem;font-weight:700;color:#ef4444;margin-top:4px;">⚠️ ' + escapeHtml(topDevice) + ' <span style="font-size:0.8rem;color:#64748b;">(' + deviceMap[topDevice] + ' مرة)</span></div>';
+      html += '</div>';
+    }
+
+    // Open issues table
+    var openIssues = issues.filter(function(i) { return i.status !== 'resolved' && !i.archived; });
+    if (openIssues.length > 0) {
+      html += '<div class="section-title">🔴 الأعطال المفتوحة (' + openIssues.length + ')</div>';
+      html += '<table><thead><tr><th>الموقع / الجهاز</th><th>الوصف</th><th>الفني</th><th>التاريخ</th></tr></thead><tbody>';
+      openIssues.forEach(function(i) {
+        html += '<tr><td><strong>' + escapeHtml(i.location) + '</strong>' + (i.equipment ? '<br><small>' + escapeHtml(i.equipment) + '</small>' : '') + '</td>';
+        html += '<td>' + escapeHtml(i.desc) + '</td>';
+        html += '<td>' + (i.technician ? escapeHtml(i.technician) : '-') + '</td>';
+        html += '<td>' + formatDate(i.date) + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    }
+
+    // Equipment summary
+    var activeEq = equipment.filter(function(e) { return e.status !== 'archived'; });
+    if (activeEq.length > 0) {
+      html += '<div class="section-title">🔧 ملخص المعدات (' + activeEq.length + ')</div>';
+      html += '<table><thead><tr><th>الجهاز</th><th>الموقع</th><th>القيمة</th><th>الصيانة القادمة</th></tr></thead><tbody>';
+      activeEq.forEach(function(e) {
+        var isOverdue = e.next && new Date(e.next) < new Date();
+        html += '<tr><td><strong>' + escapeHtml(e.name) + '</strong></td>';
+        html += '<td>' + escapeHtml(e.location || '-') + '</td>';
+        html += '<td>' + formatCurrency(parseFloat(e.estimatedValue) || 0) + '</td>';
+        html += '<td style="color:' + (isOverdue ? '#ef4444' : '#0f766e') + '">' + (e.next ? (isOverdue ? '⚠️ متأخرة ' : '') + formatDate(e.next) : '-') + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    }
+
+    html += '<div class="footer">تم إصدار هذا التقرير تلقائياً بواسطة نظام سادن المسجد • ' + new Date().toLocaleString('ar-SA') + '</div>';
+    html += '<br><div style="text-align:center;"><button onclick="window.print()" style="background:#0f766e;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:1rem;cursor:pointer;margin-left:10px;">🖨️ طباعة</button><button onclick="window.close()" style="background:#64748b;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:1rem;cursor:pointer;">إغلاق</button></div>';
+    html += '</body></html>';
+
+    win.document.write(html);
+    win.document.close();
+  });
 }

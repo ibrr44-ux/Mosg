@@ -82,6 +82,17 @@
   </div>
 </div>
 
+<!-- Startup Alert Banner -->
+<div id="startup-alert-bar" style="display:none;background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;padding:10px 16px;position:sticky;top:0;z-index:200;border-bottom:2px solid rgba(255,255,255,0.15);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <span id="startup-alert-text" style="font-size:0.85rem;font-weight:600;"></span>
+    <div style="display:flex;gap:8px;">
+      <button onclick="switchTab('issues'); document.getElementById('startup-alert-bar').style.display='none'" style="background:rgba(255,255,255,0.2);border:none;color:white;padding:4px 10px;border-radius:8px;font-size:0.8rem;cursor:pointer;"><i class="fas fa-tools"></i> عرض الأعطال</button>
+      <button onclick="document.getElementById('startup-alert-bar').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+  </div>
+</div>
+
 <div class="nav-tabs">
   <button class="tab-btn active" data-tab="dashboard" data-i18n="tabDashboard"><i class="fas fa-chart-line"></i> لوحة القيادة</button>
   <button class="tab-btn" data-tab="tasks" data-i18n="tabTasks"><i class="fas fa-tasks"></i> المهام</button>
@@ -109,6 +120,10 @@
     <div class="card-modern">
       <h2 data-i18n="upcomingMaint"><i class="fas fa-bell"></i> صيانة وشيكة (7 أيام)</h2>
       <div id="dash-upcoming"></div>
+    </div>
+    <div class="card-modern">
+      <h2><i class="fas fa-chart-bar"></i> إحصائيات سريعة</h2>
+      <div id="dash-smart-stats"></div>
     </div>
   </section>
 
@@ -173,7 +188,10 @@
   <section id="reports">
     <div class="flex-between" style="margin-bottom:0.5rem;">
       <h2 data-i18n="reportsTitle"><i class="fas fa-chart-pie"></i> التقارير والتحليلات</h2>
-      <button class="btn btn-primary no-print" onclick="window.print()" data-i18n="printSummary"><i class="fas fa-file-pdf"></i> طباعة الملخص التنفيذي</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-success no-print" onclick="exportPDFReport()"><i class="fas fa-file-pdf"></i> تصدير PDF</button>
+        <button class="btn btn-primary no-print" onclick="window.print()" data-i18n="printSummary"><i class="fas fa-print"></i> طباعة الملخص</button>
+      </div>
     </div>
 
     <div class="card-modern print-only" id="print-summary-stats">
@@ -291,6 +309,39 @@
 <script src="js/qr.js" defer></script>
 <script src="js/ui.js" defer></script>
 <script src="js/app.js" defer></script>
+
+<script>
+  // PWA Service Worker Registration
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('sw.js').then(function(reg) {
+        console.log('SW Registered');
+      }).catch(function(err) {
+        console.log('SW Registration failed', err);
+      });
+    });
+  }
+
+  // PWA Installation Logic
+  var deferredPrompt;
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    var btn = document.getElementById('install-btn');
+    if (btn) btn.style.display = 'inline-flex';
+  });
+
+  function installPWA() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(choice) {
+      if (choice.outcome === 'accepted') console.log('User accepted PWA install');
+      deferredPrompt = null;
+      var btn = document.getElementById('install-btn');
+      if (btn) btn.style.display = 'none';
+    });
+  }
+</script>
 
 </body>
 </html>

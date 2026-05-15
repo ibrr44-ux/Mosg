@@ -12,13 +12,17 @@ function generateQRCode(containerId, text, size) {
 }
 
 function openQRPrint(equipId) {
+  if (!equipId) return;
   dbGetAll('equipment').then(function(list) {
-    var rawId = equipId;
-    var rawIdStr = String(rawId).trim();
+    var rawIdStr = String(equipId).trim();
     var eq = list.find(function(x) {
       return sameId(x.id, rawIdStr) || sameId(x.uniqueId, rawIdStr);
     });
-    if (!eq || !eq.uniqueId) { alert(t('alertDeviceNotFound')); return; }
+    
+    if (!eq || !eq.uniqueId) { 
+      alert(t('alertDeviceNotFound')); 
+      return; 
+    }
 
     var html = '<div class="flex-between"><h3><i class="fas fa-qrcode"></i> ' + t('qrBarcode') + '</h3><button onclick="closeQRModal()" style="background:none;border:none;font-size:24px;cursor:pointer;">&times;</button></div>';
     html += '<div id="qr-print-area" style="margin-top:1rem;">';
@@ -38,23 +42,32 @@ function openQRPrint(equipId) {
     html += '</div>';
 
     // Preview
-    html += '<div id="qr-print-target" style="display:flex; flex-direction:column; align-items:center; padding:2rem; background:white; border-radius:12px; box-shadow:inset 0 0 10px rgba(0,0,0,0.05); margin-bottom:1.5rem;"></div>';
+    html += '<div id="qr-print-target" style="display:flex; flex-direction:column; align-items:center; padding:2rem; background:white; border-radius:12px; box-shadow:inset 0 0 10px rgba(0,0,0,0.05); margin-bottom:1.5rem; min-height:150px;"></div>';
     
     html += '<div style="display:flex; gap:10px; justify-content:center;">';
-    html += '<button class="btn btn-primary" style="flex:1" onclick="printQR(\'' + escapeHtml(eq.name).replace(/'/g, "\\'") + '\', \'' + escapeHtml(eq.uniqueId).replace(/'/g, "\\'") + '\')"><i class="fas fa-print"></i> ' + t('qrPrint') + '</button>';
+    // Use a safer way to pass data
+    window._currentPrintEq = { name: eq.name, id: eq.uniqueId };
+    html += '<button class="btn btn-primary" style="flex:1" onclick="printQR()"><i class="fas fa-print"></i> ' + t('qrPrint') + '</button>';
     html += '<button class="btn btn-outline" onclick="downloadQR(\'' + escapeHtml(eq.name).replace(/'/g, "\\'") + '\')"><i class="fas fa-download"></i></button>';
     html += '</div></div>';
 
-    document.getElementById('qr-modal-content').innerHTML = html;
-    document.getElementById('qr-modal').style.display = 'flex';
-    
-    setTimeout(function() {
-      generateQRCode('qr-print-target', eq.uniqueId, 150);
-      var label = document.createElement('div');
-      label.style.cssText = 'text-align:center; margin-top:10px; color:#1e293b;';
-      label.innerHTML = '<div style="font-weight:800; font-size:1.1rem;">' + t('qrStickerLabel') + escapeHtml(eq.uniqueId) + '</div><div style="font-size:0.8rem; opacity:0.7;">' + escapeHtml(eq.name) + '</div>';
-      document.getElementById('qr-print-target').appendChild(label);
-    }, 100);
+    var modal = document.getElementById('qr-modal');
+    var content = document.getElementById('qr-modal-content');
+    if (modal && content) {
+      content.innerHTML = html;
+      modal.style.display = 'flex';
+      
+      setTimeout(function() {
+        generateQRCode('qr-print-target', eq.uniqueId, 150);
+        var target = document.getElementById('qr-print-target');
+        if (target) {
+          var label = document.createElement('div');
+          label.style.cssText = 'text-align:center; margin-top:10px; color:#1e293b;';
+          label.innerHTML = '<div style="font-weight:800; font-size:1.1rem;">' + t('qrStickerLabel') + escapeHtml(eq.uniqueId) + '</div><div style="font-size:0.8rem; opacity:0.7;">' + escapeHtml(eq.name) + '</div>';
+          target.appendChild(label);
+        }
+      }, 150);
+    }
   });
 }
 
@@ -65,31 +78,49 @@ function togglePrintOptions() {
 
 function closeQRModal() { document.getElementById('qr-modal').style.display = 'none'; }
 
-function printQR(eqName, eqId) {
+function printQR() {
+  if (!window._currentPrintEq) {
+    alert(t('alertDeviceNotFound'));
+    return;
+  }
+  var eqName = window._currentPrintEq.name;
+  var eqId = window._currentPrintEq.id;
+  
   var type = document.getElementById('print-type').value;
   var count = (type === 'grid') ? parseInt(document.getElementById('sticker-count').value) || 1 : 1;
   
   var win = window.open('', '_blank');
+  if (!win) {
+    alert(currentLang === 'ar' ? 'يرجى السماح بالنوافذ المنبثقة (Pop-ups) لكي نتمكن من فتح صفحة الطباعة.' : 'Please allow pop-ups to open the print page.');
+    return;
+  }
+
   var printDir = currentLang === 'ar' ? 'rtl' : 'ltr';
+  var sourceEl = document.querySelector('#qr-print-target canvas') || document.querySelector('#qr-print-target img');
+  var qrSrc = sourceEl ? (sourceEl.toDataURL ? sourceEl.toDataURL() : sourceEl.src) : '';
   
-  win.document.write('<!DOCTYPE html><html dir="' + printDir + '"><head><title>' + eqName + '</title>');
+  if (!qrSrc) {
+    alert(currentLang === 'ar' ? 'جاري تجهيز الباركود، يرجى المحاولة بعد لحظة.' : 'QR code is being generated, please try again in a second.');
+    win.close();
+    return;
+  }
+
+  win.document.write('<!DOCTYPE html><html dir="' + printDir + '"><head><title>' + escapeHtml(eqName) + '</title>');
   win.document.write('<style>');
-  win.document.write('body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; background: white; }');
+  win.document.write('body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; background: white; -webkit-print-color-adjust: exact; }');
   
-  // Philosophy: mm units, fixed sizes
   if (type === 'grid') {
     win.document.write('.page-container { display: flex; flex-wrap: wrap; padding: 10mm; gap: 5mm; justify-content: flex-start; align-content: flex-start; }');
-    win.document.write('.sticker { width: 40mm; height: 25mm; border: 1px solid #eee; display: flex; flex-direction: row; align-items: center; justify-content: space-around; padding: 2mm; box-sizing: border-box; page-break-inside: avoid; border-radius: 2mm; }');
-    win.document.write('.qr-box { width: 18mm; height: 18mm; }');
-    win.document.write('.label-box { display: flex; flex-direction: column; justify-content: center; width: 18mm; overflow: hidden; }');
+    win.document.write('.sticker { width: 40mm; height: 25mm; border: 1px solid #eee; display: flex; flex-direction: row; align-items: center; justify-content: space-around; padding: 2mm; box-sizing: border-box; page-break-inside: avoid; border-radius: 2mm; margin-bottom: 2mm; }');
+    win.document.write('.qr-box { width: 18mm; height: 18mm; display: flex; align-items: center; justify-content: center; }');
+    win.document.write('.label-box { display: flex; flex-direction: column; justify-content: center; width: 18mm; overflow: hidden; text-align: center; }');
     win.document.write('.label-main { font-weight: 800; font-size: 8pt; color: #000; margin-bottom: 1mm; white-space: nowrap; }');
     win.document.write('.label-sub { font-size: 6pt; color: #666; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }');
   } else {
-    // Thermal Sticker (e.g. 50mm x 30mm)
-    win.document.write('.page-container { display: flex; justify-content: center; align-items: center; height: 100vh; }');
-    win.document.write('.sticker { width: 50mm; height: 30mm; display: flex; flex-direction: row; align-items: center; justify-content: space-around; padding: 2mm; box-sizing: border-box; }');
-    win.document.write('.qr-box { width: 22mm; height: 22mm; }');
-    win.document.write('.label-box { display: flex; flex-direction: column; justify-content: center; width: 22mm; }');
+    win.document.write('.page-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; }');
+    win.document.write('.sticker { width: 50mm; height: 30mm; display: flex; flex-direction: row; align-items: center; justify-content: space-around; padding: 2mm; box-sizing: border-box; border: 1px solid #eee; }');
+    win.document.write('.qr-box { width: 22mm; height: 22mm; display: flex; align-items: center; justify-content: center; }');
+    win.document.write('.label-box { display: flex; flex-direction: column; justify-content: center; width: 22mm; text-align: center; }');
     win.document.write('.label-main { font-weight: 800; font-size: 10pt; color: #000; margin-bottom: 2mm; }');
     win.document.write('.label-sub { font-size: 7pt; color: #444; }');
   }
@@ -99,15 +130,11 @@ function printQR(eqName, eqId) {
   
   win.document.write('<div class="page-container">');
   
-  // We need the QR image source. We can get it from the canvas/img in the current modal.
-  var sourceEl = document.querySelector('#qr-print-target canvas') || document.querySelector('#qr-print-target img');
-  var qrSrc = sourceEl ? (sourceEl.toDataURL ? sourceEl.toDataURL() : sourceEl.src) : '';
-  
   var stickerHtml = '<div class="sticker">' +
                     '<div class="qr-box"><img src="' + qrSrc + '" style="width:100%; height:100%; object-fit:contain;"></div>' +
                     '<div class="label-box">' +
-                    '<div class="label-main">' + t('qrStickerLabel') + eqId + '</div>' +
-                    '<div class="label-sub">' + eqName + '</div>' +
+                    '<div class="label-main">' + t('qrStickerLabel') + escapeHtml(eqId) + '</div>' +
+                    '<div class="label-sub">' + escapeHtml(eqName) + '</div>' +
                     '</div>' +
                     '</div>';
                     
@@ -116,7 +143,7 @@ function printQR(eqName, eqId) {
   }
   
   win.document.write('</div>');
-  win.document.write('<script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); };</script>');
+  win.document.write('<script>window.focus(); setTimeout(function() { window.print(); window.close(); }, 700);</script>');
   win.document.write('</body></html>');
   win.document.close();
 }
