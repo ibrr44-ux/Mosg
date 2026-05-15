@@ -533,10 +533,12 @@ function initFileSystem() {
 function renderFileSystemStatus() {
   var el = document.getElementById('fs-status');
   if (!el) return;
+  var fsBtn = document.getElementById('fs-header-btn');
   if (!fsSupported) {
     el.innerHTML = '<p style="color:var(--text-muted);"><i class="fas fa-mobile-alt"></i> ' + t('fsNotSupportedMobile') + '</p>';
     document.getElementById('fs-setup-btn').style.display = 'none';
     document.getElementById('mobile-backup-btn').style.display = 'inline-flex';
+    if (fsBtn) fsBtn.style.display = 'none';
     return;
   }
   
@@ -551,17 +553,28 @@ function renderFileSystemStatus() {
     document.getElementById('fs-reconnect-btn').style.display = 'none';
     document.getElementById('fs-setup-btn').style.display = 'none';
     document.getElementById('fs-disconnect-btn').style.display = 'inline-flex';
+    if (fsBtn) { fsBtn.innerHTML = '<i class="fas fa-folder-check"></i>'; fsBtn.title = t('fsConnected'); fsBtn.style.display = 'inline-flex'; fsBtn.className = 'theme-toggle connected'; }
   } else if (fsDirHandle && !fsReady) {
     el.innerHTML = '<p style="color:var(--warning);"><i class="fas fa-exclamation-triangle"></i> <strong>' + t('fsDisconnected') + '</strong> - ' + t('fsReconnectHint') + '</p>';
     document.getElementById('fs-reconnect-btn').style.display = 'inline-flex';
     document.getElementById('fs-setup-btn').style.display = 'none';
     document.getElementById('fs-disconnect-btn').style.display = 'inline-flex';
+    if (fsBtn) { fsBtn.innerHTML = '<i class="fas fa-sync"></i>'; fsBtn.title = t('reconnect'); fsBtn.style.display = 'inline-flex'; fsBtn.className = 'theme-toggle warning'; }
   } else {
     el.innerHTML = '<p style="color:var(--text-muted);"><i class="fas fa-folder-open"></i> ' + t('fsNotSelected') + '</p>';
     document.getElementById('fs-reconnect-btn').style.display = 'none';
     document.getElementById('fs-setup-btn').style.display = 'inline-flex';
     document.getElementById('fs-disconnect-btn').style.display = 'none';
+    if (fsBtn) { fsBtn.innerHTML = '<i class="fas fa-folder-plus"></i>'; fsBtn.title = t('selectFolder'); fsBtn.style.display = 'inline-flex'; fsBtn.className = 'theme-toggle'; }
   }
+}
+
+function handleFsHeaderClick() {
+  if (!fsDirHandle) { setupFileSystem(); return; }
+  if (!fsReady) { reconnectFileSystem(); return; }
+  // If connected, go to settings tab
+  var settingsTab = document.querySelector('[data-tab="settings"]');
+  if (settingsTab) settingsTab.click();
 }
 
 function setupFileSystem() {

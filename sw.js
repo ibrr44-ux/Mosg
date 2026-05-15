@@ -1,4 +1,4 @@
-const CACHE = 'mosque-cache-v10';
+const CACHE = 'mosque-cache-v11';
 const ASSETS = [
   'index.html',
   'manifest.json',

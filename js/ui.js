@@ -40,6 +40,21 @@ function showEquipmentDetail(eq) {
   html += '<div class="detail-info-item"><span class="label"><i class="fas fa-money-bill-wave"></i> ' + t('estimatedValue') + '</span><span class="value">' + formatCurrency(estValue) + '</span></div>';
   html += '<div class="detail-info-item"><span class="label"><i class="fas fa-wrench"></i> ' + t('totalMaintenance') + '</span><span class="value">' + history.length + ' ' + t('operations') + '</span></div>';
   html += '<div class="detail-info-item"><span class="label"><i class="fas fa-calendar-alt"></i> ' + t('nextMaintenance') + '</span><span class="value">' + (eq.next ? formatDate(eq.next) : t('notSet')) + '</span></div>';
+  // Purchase date & age
+  if (eq.purchaseDate) {
+    var purchD = new Date(eq.purchaseDate);
+    var now = new Date();
+    var diffMs = now - purchD;
+    var diffDays = Math.floor(diffMs / 86400000);
+    var ageYears = Math.floor(diffDays / 365);
+    var ageMonths = Math.floor((diffDays % 365) / 30);
+    var ageStr = '';
+    if (ageYears > 0) ageStr += ageYears + ' سنة ';
+    if (ageMonths > 0) ageStr += ageMonths + ' شهر';
+    if (!ageStr) ageStr = diffDays + ' يوم';
+    html += '<div class="detail-info-item"><span class="label"><i class="fas fa-shopping-cart"></i> تاريخ الشراء</span><span class="value">' + formatDate(eq.purchaseDate) + '</span></div>';
+    html += '<div class="detail-info-item"><span class="label"><i class="fas fa-hourglass-half"></i> العمر الافتراضي</span><span class="value" style="color:var(--primary);font-weight:700">' + ageStr + '</span></div>';
+  }
   html += '<div class="detail-info-item" style="grid-column: span 2"><span class="label"><i class="fas fa-wallet"></i> ' + t('totalCost') + ' / ' + t('maintRatio') + '</span><span class="value" style="color:var(--danger)">' + formatCurrency(totalCost) + ' (' + ratio.toFixed(1) + '%)</span></div>';
   if (eq.notes) {
     html += '<div class="detail-info-item" style="grid-column: span 2"><span class="label"><i class="fas fa-sticky-note"></i> ' + t('equipNotes') + '</span><span class="value">' + escapeHtml(eq.notes) + '</span></div>';
@@ -482,6 +497,8 @@ function openModal(type, id) {
     html += '<input id="equip-name" placeholder="' + t('equipName') + '" required>';
     html += '<input id="equip-location" placeholder="' + t('equipLocation') + ' (' + t('prayerHall') + '...)" required>';
     html += '<input type="number" id="equip-value" placeholder="' + t('equipValue') + '" min="0" step="0.01">';
+    html += '<label style="display:block;margin-bottom:4px;font-size:0.8rem;color:var(--text-muted)"><i class="fas fa-shopping-cart"></i> تاريخ الشراء / الإضافة (اختياري)</label>';
+    html += '<input type="date" id="equip-purchase">';
     html += '<label style="display:block;margin-bottom:4px;font-size:0.8rem;color:var(--text-muted)">' + t('equipNext') + '</label>';
     html += '<input type="date" id="equip-next">';
     html += '<textarea id="equip-notes" placeholder="' + t('equipNotes') + '"></textarea>';
@@ -519,6 +536,7 @@ function openModal(type, id) {
         document.getElementById('equip-name').value = item.name;
         document.getElementById('equip-location').value = item.location;
         document.getElementById('equip-value').value = item.estimatedValue || 0;
+        document.getElementById('equip-purchase').value = item.purchaseDate || '';
         document.getElementById('equip-next').value = item.next || '';
         document.getElementById('equip-notes').value = item.notes || '';
         if (item.status === 'archived') {
@@ -605,7 +623,8 @@ function saveModal() {
     }
   } else if (type === 'equipment') {
     var nameVal = document.getElementById('equip-name').value;
-    data = { name: nameVal, location: document.getElementById('equip-location').value, estimatedValue: parseFloat(document.getElementById('equip-value').value) || 0, next: document.getElementById('equip-next').value, notes: document.getElementById('equip-notes').value, maintenanceHistory: [] };
+    var purchaseVal = document.getElementById('equip-purchase').value;
+    data = { name: nameVal, location: document.getElementById('equip-location').value, estimatedValue: parseFloat(document.getElementById('equip-value').value) || 0, purchaseDate: purchaseVal || null, next: document.getElementById('equip-next').value, notes: document.getElementById('equip-notes').value, maintenanceHistory: [] };
     if (currentEdit.id) {
       promise = dbGetAll('equipment').then(function(eqs) {
         var old = eqs.find(function(e) { return sameId(e.id, currentEdit.id); });
@@ -768,7 +787,7 @@ function exportPDFReport() {
 
     html += '<div class="header">';
     html += '<h1>📊 تقرير سادن المسجد</h1>';
-    html += '<p>تاريخ الإصدار: ' + date + (currentMosque ? ' • ' + escapeHtml(currentMosque) : '') + '</p>';
+    html += '<p>تاريخ الإصدار: ' + date + (currentMosque ? ' • ' + escapeHtml(currentMosque.name) : '') + '</p>';
     html += '</div>';
 
     html += '<div class="grid">';

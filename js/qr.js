@@ -47,8 +47,8 @@ function openQRPrint(equipId) {
     html += '<div style="display:flex; gap:10px; justify-content:center;">';
     // Use a safer way to pass data
     window._currentPrintEq = { name: eq.name, id: eq.uniqueId };
-    html += '<button class="btn btn-primary" style="flex:1" onclick="printQR()"><i class="fas fa-print"></i> ' + t('qrPrint') + '</button>';
-    html += '<button class="btn btn-outline" onclick="downloadQR(\'' + escapeHtml(eq.name).replace(/'/g, "\\'") + '\')"><i class="fas fa-download"></i></button>';
+    html += '<button class="btn btn-primary" style="flex:1" onclick="exportQRSticker()"><i class="fas fa-download"></i> ' + t('qrExport') + '</button>';
+    html += '<button class="btn btn-outline" onclick="downloadQR(\'' + escapeHtml(eq.name).replace(/'/g, "\\'") + '\')"><i class="fas fa-image"></i></button>';
     html += '</div></div>';
 
     var modal = document.getElementById('qr-modal');
@@ -58,15 +58,20 @@ function openQRPrint(equipId) {
       modal.style.display = 'flex';
       
       setTimeout(function() {
-        generateQRCode('qr-print-target', eq.uniqueId, 150);
-        var target = document.getElementById('qr-print-target');
-        if (target) {
-          var label = document.createElement('div');
-          label.style.cssText = 'text-align:center; margin-top:10px; color:#1e293b;';
-          label.innerHTML = '<div style="font-weight:800; font-size:1.1rem;">' + t('qrStickerLabel') + escapeHtml(eq.uniqueId) + '</div><div style="font-size:0.8rem; opacity:0.7;">' + escapeHtml(eq.name) + '</div>';
-          target.appendChild(label);
+        try {
+          generateQRCode('qr-print-target', eq.uniqueId, 150);
+          var target = document.getElementById('qr-print-target');
+          if (target) {
+            var label = document.createElement('div');
+            label.style.cssText = 'text-align:center; margin-top:10px; color:#1e293b;';
+            label.innerHTML = '<div style="font-weight:800; font-size:1.1rem;">' + t('qrStickerLabel') + escapeHtml(eq.uniqueId) + '</div><div style="font-size:0.8rem; opacity:0.7;">' + escapeHtml(eq.name) + '</div>';
+            target.appendChild(label);
+          }
+        } catch(err) {
+          console.error('QR generation error:', err);
+          alert(currentLang === 'ar' ? 'خطأ في توليد الباركود' : 'Error generating QR code');
         }
-      }, 150);
+      }, 200);
     }
   });
 }
@@ -78,92 +83,138 @@ function togglePrintOptions() {
 
 function closeQRModal() { document.getElementById('qr-modal').style.display = 'none'; }
 
-function printQR() {
+function exportQRSticker() {
   if (!window._currentPrintEq) {
     alert(t('alertDeviceNotFound'));
     return;
   }
   var eqName = window._currentPrintEq.name;
-  var eqId = window._currentPrintEq.id;
-  
+  var eqId   = window._currentPrintEq.id;
+
   var type = document.getElementById('print-type').value;
-  var count = (type === 'grid') ? parseInt(document.getElementById('sticker-count').value) || 1 : 1;
-  
-  var win = window.open('', '_blank');
-  if (!win) {
-    alert(currentLang === 'ar' ? 'يرجى السماح بالنوافذ المنبثقة (Pop-ups) لكي نتمكن من فتح صفحة الطباعة.' : 'Please allow pop-ups to open the print page.');
+
+  var qrSrc = '';
+  var targetDiv = document.getElementById('qr-print-target');
+  if (!targetDiv) {
+    alert(currentLang === 'ar' ? 'لم يتم العثور على عنصر الباركود' : 'QR element not found');
     return;
   }
 
-  var printDir = currentLang === 'ar' ? 'rtl' : 'ltr';
-  var sourceEl = document.querySelector('#qr-print-target canvas') || document.querySelector('#qr-print-target img');
-  var qrSrc = sourceEl ? (sourceEl.toDataURL ? sourceEl.toDataURL() : sourceEl.src) : '';
-  
+  var canvasEl = targetDiv.querySelector('canvas');
+  if (canvasEl && typeof canvasEl.toDataURL === 'function') {
+    try { qrSrc = canvasEl.toDataURL('image/png'); } catch(e) { console.warn(e); }
+  }
   if (!qrSrc) {
-    alert(currentLang === 'ar' ? 'جاري تجهيز الباركود، يرجى المحاولة بعد لحظة.' : 'QR code is being generated, please try again in a second.');
-    win.close();
+    var imgEl = targetDiv.querySelector('img');
+    if (imgEl && imgEl.src) qrSrc = imgEl.src;
+  }
+  if (!qrSrc) {
+    var svgEl = targetDiv.querySelector('svg');
+    if (svgEl) {
+      try { qrSrc = 'data:image/svg+xml,' + encodeURIComponent(new XMLSerializer().serializeToString(svgEl)); } catch(e) {}
+    }
+  }
+  if (!qrSrc) {
+    alert(currentLang === 'ar' ? 'جاري تجهيز الباركود، يرجى المحاولة بعد لحظة.' : 'QR code is being generated, please try again shortly.');
     return;
   }
 
-  win.document.write('<!DOCTYPE html><html dir="' + printDir + '"><head><title>' + escapeHtml(eqName) + '</title>');
-  win.document.write('<style>');
-  win.document.write('body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; background: white; -webkit-print-color-adjust: exact; }');
-  
+  closeQRModal();
+
+  var width, height, qrSize, padLeft, fontMain, fontSub;
   if (type === 'grid') {
-    win.document.write('.page-container { display: flex; flex-wrap: wrap; padding: 10mm; gap: 5mm; justify-content: flex-start; align-content: flex-start; }');
-    win.document.write('.sticker { width: 40mm; height: 25mm; border: 1px solid #eee; display: flex; flex-direction: row; align-items: center; justify-content: space-around; padding: 2mm; box-sizing: border-box; page-break-inside: avoid; border-radius: 2mm; margin-bottom: 2mm; }');
-    win.document.write('.qr-box { width: 18mm; height: 18mm; display: flex; align-items: center; justify-content: center; }');
-    win.document.write('.label-box { display: flex; flex-direction: column; justify-content: center; width: 18mm; overflow: hidden; text-align: center; }');
-    win.document.write('.label-main { font-weight: 800; font-size: 8pt; color: #000; margin-bottom: 1mm; white-space: nowrap; }');
-    win.document.write('.label-sub { font-size: 6pt; color: #666; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }');
+    width = 800; height = 500; qrSize = 340; padLeft = 30; fontMain = 26; fontSub = 18;
   } else {
-    win.document.write('.page-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; }');
-    win.document.write('.sticker { width: 50mm; height: 30mm; display: flex; flex-direction: row; align-items: center; justify-content: space-around; padding: 2mm; box-sizing: border-box; border: 1px solid #eee; }');
-    win.document.write('.qr-box { width: 22mm; height: 22mm; display: flex; align-items: center; justify-content: center; }');
-    win.document.write('.label-box { display: flex; flex-direction: column; justify-content: center; width: 22mm; text-align: center; }');
-    win.document.write('.label-main { font-weight: 800; font-size: 10pt; color: #000; margin-bottom: 2mm; }');
-    win.document.write('.label-sub { font-size: 7pt; color: #444; }');
+    width = 900; height = 600; qrSize = 400; padLeft = 40; fontMain = 34; fontSub = 22;
   }
-  
-  win.document.write('@media print { .sticker { border: none !important; } .no-print { display: none !important; } }');
-  win.document.write('</style></head><body>');
-  
-  win.document.write('<div class="page-container">');
-  
-  var stickerHtml = '<div class="sticker">' +
-                    '<div class="qr-box"><img src="' + qrSrc + '" style="width:100%; height:100%; object-fit:contain;"></div>' +
-                    '<div class="label-box">' +
-                    '<div class="label-main">' + t('qrStickerLabel') + escapeHtml(eqId) + '</div>' +
-                    '<div class="label-sub">' + escapeHtml(eqName) + '</div>' +
-                    '</div>' +
-                    '</div>';
-                    
-  for (var i = 0; i < count; i++) {
-    win.document.write(stickerHtml);
-  }
-  
-  win.document.write('</div>');
-  win.document.write('<script>window.focus(); setTimeout(function() { window.print(); window.close(); }, 700);</script>');
-  win.document.write('</body></html>');
-  win.document.close();
+  var labelX = padLeft + qrSize + padLeft;
+  var labelW = width - labelX - padLeft;
+  var centerX = labelX + labelW / 2;
+  var qrY = (height - qrSize) / 2;
+
+  var img = new Image();
+  img.onload = function() {
+    var c = document.createElement('canvas');
+    c.width = width; c.height = height;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, padLeft, qrY, qrSize, qrSize);
+
+    ctx.fillStyle = '#000000';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold ' + fontMain + 'px system-ui, sans-serif';
+    ctx.fillText(t('qrStickerLabel') + eqId, centerX, height / 2 - fontMain * 0.3);
+    ctx.fillStyle = '#333333';
+    ctx.font = fontSub + 'px system-ui, sans-serif';
+    ctx.fillText(eqName, centerX, height / 2 + fontSub * 0.7);
+
+    var link = document.createElement('a');
+    link.href = c.toDataURL('image/png');
+    link.download = (eqName || 'sticker') + '_QR_' + new Date().getTime() + '.png';
+    link.click();
+  };
+  img.onerror = function() {
+    alert(currentLang === 'ar' ? 'فشل تصدير الباركود' : 'Failed to export QR code');
+  };
+  img.src = qrSrc;
+  if (img.complete && img.naturalWidth > 0) img.onload();
 }
 
 function downloadQR(name) {
-  var canvas = document.querySelector('#qr-print-target canvas');
-  if (canvas) {
-    var a = document.createElement('a');
-    a.href = canvas.toDataURL('image/png');
-    a.download = name + '_QR.png';
-    a.click();
-  } else {
-    var img = document.querySelector('#qr-print-target img');
-    if (img && img.src) {
-      var a = document.createElement('a');
-      a.href = img.src;
-      a.download = name + '_QR.png';
-      a.click();
+  var target = document.getElementById('qr-print-target');
+  if (!target) {
+    alert(currentLang === 'ar' ? 'لم يتم العثور على عنصر الباركود' : 'QR element not found');
+    return;
+  }
+
+  // البحث عن canvas أولاً
+  var canvas = target.querySelector('canvas');
+  if (canvas && typeof canvas.toDataURL === 'function') {
+    try {
+      var link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = escapeHtml(name) + '_QR_' + new Date().getTime() + '.png';
+      link.click();
+      return;
+    } catch(e) {
+      console.warn('Canvas download failed:', e);
     }
   }
+
+  // إذا لم ننجح مع canvas، نبحث عن img
+  var img = target.querySelector('img');
+  if (img && img.src) {
+    try {
+      var link = document.createElement('a');
+      link.href = img.src;
+      link.download = escapeHtml(name) + '_QR_' + new Date().getTime() + '.png';
+      link.click();
+      return;
+    } catch(e) {
+      console.warn('Image download failed:', e);
+    }
+  }
+
+  // إذا فشل كل شيء، نحاول SVG
+  var svg = target.querySelector('svg');
+  if (svg) {
+    try {
+      var svgData = new XMLSerializer().serializeToString(svg);
+      var blob = new Blob([svgData], { type: 'image/svg+xml' });
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = escapeHtml(name) + '_QR_' + new Date().getTime() + '.svg';
+      link.click();
+      URL.revokeObjectURL(link.href);
+      return;
+    } catch(e) {
+      console.warn('SVG download failed:', e);
+    }
+  }
+
+  alert(currentLang === 'ar' ? 'فشل في تحميل الباركود. تأكد من توليد الباركود بشكل صحيح.' : 'Failed to download QR code. Please ensure QR code was generated correctly.');
 }
 
 // ---------- Scanner ----------
