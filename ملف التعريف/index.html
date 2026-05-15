@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>دليل التثبيت - سادن المسجد</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
+      font-family: 'Cairo', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    body.dark {
+      background: linear-gradient(135deg, #0f172a 0%, #064e3b 100%);
+    }
+    .install-container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      flex: 1;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .hero img {
+      width: 120px;
+      height: 120px;
+      border-radius: 24px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      margin-bottom: 1rem;
+    }
+    .platform-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.05);
+      transition: transform 0.3s ease;
+    }
+    body.dark .platform-card {
+      background: rgba(30, 41, 59, 0.7);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .platform-card:hover {
+      transform: translateY(-5px);
+    }
+    .platform-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--primary);
+    }
+    .platform-header i {
+      font-size: 2.5rem;
+      color: var(--primary);
+    }
+    .platform-header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    .step-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .step-list li {
+      position: relative;
+      padding-right: 35px;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+    html[dir="ltr"] .step-list li {
+      padding-right: 0;
+      padding-left: 35px;
+    }
+    .step-list li::before {
+      content: '✓';
+      position: absolute;
+      right: 0;
+      top: 2px;
+      width: 24px;
+      height: 24px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+    html[dir="ltr"] .step-list li::before {
+      right: auto;
+      left: 0;
+    }
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      font-weight: bold;
+      border-radius: 50px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      text-decoration: none;
+      box-shadow: 0 4px 15px rgba(15, 118, 110, 0.3);
+      transition: all 0.3s ease;
+      margin-top: 2rem;
+    }
+    .action-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(15, 118, 110, 0.4);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="glass-header" style="justify-content: space-between; position: sticky; top: 0; z-index: 10;">
+    <div class="header-title">
+      <h1 data-key="title"><i class="fas fa-mosque"></i> سادن المسجد</h1>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button class="btn btn-outline" id="theme-btn" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+      <button class="btn btn-primary" id="lang-btn" onclick="toggleLanguage()"><i class="fas fa-language"></i> English</button>
+    </div>
+  </div>
+
+  <div class="install-container">
+    <div class="hero">
+      <img src="icon-192.png" alt="Saden Logo">
+      <h2 data-key="heroTitle" style="font-size: 2rem; margin-bottom: 0.5rem; color: var(--primary-dark);">دليل التثبيت السريع</h2>
+      <p data-key="heroSub" style="color: var(--text-muted); font-size: 1.1rem;">تعرف على كيفية تثبيت تطبيق سادن المسجد على جهازك للعمل بدون إنترنت.</p>
+    </div>
+
+    <!-- Desktop -->
+    <div class="platform-card">
+      <div class="platform-header">
+        <i class="fas fa-laptop"></i>
+        <h2 data-key="desktopTitle">أجهزة الكمبيوتر (ويندوز / ماك)</h2>
+      </div>
+      <ul class="step-list">
+        <li data-key="desktop1">افتح النظام باستخدام متصفح <strong>Google Chrome</strong> أو <strong>Microsoft Edge</strong>.</li>
+        <li data-key="desktop2">انقر على أيقونة <strong>تثبيت التطبيق (Install App)</strong> الموجودة في شريط العنوان أعلى المتصفح.</li>
+        <li data-key="desktop3">بعد التثبيت، افتح التطبيق وانتقل إلى "الإعدادات" ثم <strong>اختيار مجلد</strong> لربط التطبيق بمجلد آمن لحفظ البيانات.</li>
+        <li data-key="desktop4">ستتم مزامنة بيانات المساجد تلقائياً في هذا المجلد لضمان عدم ضياعها.</li>
+      </ul>
+    </div>
+
+    <!-- iOS -->
+    <div class="platform-card">
+      <div class="platform-header">
+        <i class="fab fa-apple"></i>
+        <h2 data-key="iosTitle">أجهزة آيفون / آيباد (iOS)</h2>
+      </div>
+      <ul class="step-list">
+        <li data-key="ios1">افتح النظام باستخدام متصفح <strong>Safari</strong>.</li>
+        <li data-key="ios2">اضغط على زر <strong>المشاركة (Share)</strong> في شريط القوائم السفلي.</li>
+        <li data-key="ios3">اختر <strong>إضافة إلى الصفحة الرئيسية (Add to Home Screen)</strong> من القائمة.</li>
+        <li data-key="ios4">سيتم حفظ البيانات داخل التطبيق (ميزة المجلد الآمن غير مدعومة على iOS). يُنصح باستخدام زر <strong>مشاركة نسخة احتياطية</strong> بانتظام لحفظ بياناتك.</li>
+      </ul>
+    </div>
+
+    <!-- Android -->
+    <div class="platform-card">
+      <div class="platform-header">
+        <i class="fab fa-android"></i>
+        <h2 data-key="androidTitle">أجهزة أندرويد (Android)</h2>
+      </div>
+      <ul class="step-list">
+        <li data-key="android1">افتح النظام باستخدام متصفح <strong>Google Chrome</strong>.</li>
+        <li data-key="android2">اضغط على قائمة النقاط الثلاث في الزاوية العلوية.</li>
+        <li data-key="android3">اختر <strong>تثبيت التطبيق (Install App)</strong> أو <strong>إضافة إلى الشاشة الرئيسية</strong>.</li>
+        <li data-key="android4">سيتم حفظ البيانات داخل التطبيق. يُنصح باستخدام زر <strong>مشاركة نسخة احتياطية</strong> بانتظام لضمان أمان البيانات.</li>
+      </ul>
+    </div>
+
+
+  </div>
+
+  <script>
+    const translations = {
+      ar: {
+        title: '<i class="fas fa-mosque"></i> سادن المسجد',
+        heroTitle: 'دليل التثبيت السريع',
+        heroSub: 'تعرف على كيفية تثبيت تطبيق سادن المسجد على جهازك للعمل بدون إنترنت.',
+        desktopTitle: 'أجهزة الكمبيوتر (ويندوز / ماك)',
+        desktop1: 'افتح النظام باستخدام متصفح <strong>Google Chrome</strong> أو <strong>Microsoft Edge</strong>.',
+        desktop2: 'انقر على أيقونة <strong>تثبيت التطبيق (Install App)</strong> الموجودة في شريط العنوان أعلى المتصفح.',
+        desktop3: 'بعد التثبيت، افتح التطبيق وانتقل إلى "الإعدادات" ثم <strong>اختيار مجلد</strong> لربط التطبيق بمجلد آمن لحفظ البيانات.',
+        desktop4: 'ستتم مزامنة بيانات المساجد تلقائياً في هذا المجلد لضمان عدم ضياعها.',
+        iosTitle: 'أجهزة آيفون / آيباد (iOS)',
+        ios1: 'افتح النظام باستخدام متصفح <strong>Safari</strong>.',
+        ios2: 'اضغط على زر <strong>المشاركة (Share)</strong> في شريط القوائم السفلي.',
+        ios3: 'اختر <strong>إضافة إلى الصفحة الرئيسية (Add to Home Screen)</strong> من القائمة.',
+        ios4: 'سيتم حفظ البيانات داخل التطبيق (ميزة المجلد الآمن غير مدعومة على iOS). يُنصح باستخدام زر <strong>مشاركة نسخة احتياطية</strong> بانتظام لحفظ بياناتك.',
+        androidTitle: 'أجهزة أندرويد (Android)',
+        android1: 'افتح النظام باستخدام متصفح <strong>Google Chrome</strong>.',
+        android2: 'اضغط على قائمة النقاط الثلاث في الزاوية العلوية.',
+        android3: 'اختر <strong>تثبيت التطبيق (Install App)</strong> أو <strong>إضافة إلى الشاشة الرئيسية</strong>.',
+        android4: 'سيتم حفظ البيانات داخل التطبيق. يُنصح باستخدام زر <strong>مشاركة نسخة احتياطية</strong> بانتظام لضمان أمان البيانات.'
+      },
+      en: {
+        title: '<i class="fas fa-mosque"></i> Saden Al-Masjed',
+        heroTitle: 'Quick Installation Guide',
+        heroSub: 'Learn how to install the Saden Al-Masjed app on your device for offline use.',
+        desktopTitle: 'Desktop Computers (Windows / Mac)',
+        desktop1: 'Open the system using <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong>.',
+        desktop2: 'Click on the <strong>Install App</strong> icon located in the address bar at the top of the browser.',
+        desktop3: 'After installation, open the app, go to Settings, and click <strong>Select Folder</strong> to link the app to a secure data folder.',
+        desktop4: 'Mosque data will be automatically synced to this folder to prevent data loss.',
+        iosTitle: 'iPhone / iPad (iOS)',
+        ios1: 'Open the system using the <strong>Safari</strong> browser.',
+        ios2: 'Tap the <strong>Share</strong> button in the bottom menu bar.',
+        ios3: 'Select <strong>Add to Home Screen</strong> from the list.',
+        ios4: 'Data is stored securely within the app (Secure Folder is not supported on iOS). It is recommended to use the <strong>Share Backup</strong> button regularly.',
+        androidTitle: 'Android Devices',
+        android1: 'Open the system using the <strong>Google Chrome</strong> browser.',
+        android2: 'Tap the three-dot menu in the top corner.',
+        android3: 'Select <strong>Install App</strong> or <strong>Add to Home Screen</strong>.',
+        android4: 'Data is stored securely within the app. It is recommended to use the <strong>Share Backup</strong> button regularly.'
+      }
+    };
+
+    let currentLang = 'ar';
+    let isDark = false;
+
+    function toggleTheme() {
+      isDark = !isDark;
+      document.body.classList.toggle('dark', isDark);
+      const btn = document.getElementById('theme-btn');
+      btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+    }
+
+    function toggleLanguage() {
+      currentLang = currentLang === 'ar' ? 'en' : 'ar';
+      document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.lang = currentLang;
+      
+      const btn = document.getElementById('lang-btn');
+      btn.innerHTML = currentLang === 'ar' ? '<i class="fas fa-language"></i> English' : '<i class="fas fa-language"></i> العربية';
+      
+      document.querySelectorAll('[data-key]').forEach(el => {
+        const key = el.getAttribute('data-key');
+        if (translations[currentLang][key]) {
+          el.innerHTML = translations[currentLang][key];
+        }
+      });
+      
+      // Update font family based on language
+      document.body.style.fontFamily = currentLang === 'ar' ? "'Cairo', sans-serif" : "'Inter', sans-serif";
+    }
+
+    // Initialize from localStorage if available
+    window.onload = () => {
+      const savedLang = localStorage.getItem('mosqueLang');
+      const savedDark = localStorage.getItem('mosqueDark');
+      
+      if (savedDark === 'true') {
+        toggleTheme(); // it will set isDark to true
+      }
+      if (savedLang === 'en') {
+        toggleLanguage(); // sets to english
+      }
+    };
+  </script>
+</body>
+</html>
