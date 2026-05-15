@@ -475,7 +475,7 @@ function openModal(type, id) {
     html += '</select>';
     html += '<textarea id="issue-desc" placeholder="' + t('issueDesc') + '" required></textarea>';
     html += '<div class="card-modern" style="background:rgba(0,0,0,0.03); padding:1rem; margin-bottom:1rem; border:1px dashed var(--border);">';
-    html += '<label style="font-size:0.8rem; font-weight:700; margin-bottom:0.5rem; display:block;">' + t('techHistory') + ' (اختياري)</label>';
+    html += '<label style="font-size:0.8rem; font-weight:700; margin-bottom:0.5rem; display:block;">' + t('techHistory') + '</label>';
     html += '<input id="issue-tech" placeholder="' + t('techName') + '" style="margin-bottom:8px;">';
     html += '<input id="issue-tech-phone" placeholder="' + t('techPhone') + '">';
     html += '</div>';
@@ -555,6 +555,19 @@ function closeModal() {
 
 function saveModal() {
   var type = currentEdit.type;
+
+  // Validation
+  if (type === 'task') {
+    if (!document.getElementById('task-title').value.trim()) { alert(t('errorEmptyFields')); return; }
+  } else if (type === 'issue') {
+    if (!document.getElementById('issue-loc').value.trim() || !document.getElementById('issue-desc').value.trim()) { alert(t('errorEmptyFields')); return; }
+  } else if (type === 'donation' || type === 'expense') {
+    var amt = parseFloat(document.getElementById(type === 'donation' ? 'amount' : 'expense-amount').value);
+    if (isNaN(amt) || amt <= 0) { alert(t('errorInvalidAmount')); return; }
+  } else if (type === 'equipment') {
+    if (!document.getElementById('equip-name').value.trim()) { alert(t('errorEmptyName')); return; }
+  }
+
   var data = {};
   var promise;
 
@@ -736,7 +749,7 @@ function showStartupAlerts() {
     var bar = document.getElementById('startup-alert-bar');
     var txt = document.getElementById('startup-alert-text');
     if (!bar || !txt) return;
-    txt.innerHTML = '<i class="fas fa-exclamation-triangle"></i> تنبيه: لديك <strong>' + open.length + '</strong> عطل مفتوح يحتاج متابعة';
+    txt.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + t('startupAlert').replace('{count}', open.length);
     bar.style.display = 'block';
     // Auto-hide after 8 seconds
     setTimeout(function() {
@@ -767,9 +780,9 @@ function exportPDFReport() {
     var date = new Date().toLocaleDateString('ar-SA');
 
     var win = window.open('', '_blank');
-    if (!win) { alert('يرجى السماح بالنوافذ المنبثقة'); return; }
+    if (!win) { alert(t('alertPopupBlocked')); return; }
 
-    var html = '<!DOCTYPE html><html dir="' + dir + '"><head><meta charset="UTF-8"><title>تقرير سادن المسجد</title><style>';
+    var html = '<!DOCTYPE html><html dir="' + dir + '"><head><meta charset="UTF-8"><title>' + t('reportMainTitle') + '</title><style>';
     html += 'body{font-family:system-ui,sans-serif;margin:0;padding:20px;background:#f8fafc;color:#1e293b;direction:' + dir + '}';
     html += '.header{background:linear-gradient(135deg,#0f766e,#0d9488);color:white;padding:24px;border-radius:16px;margin-bottom:20px;text-align:center;}';
     html += '.header h1{margin:0;font-size:1.6rem} .header p{margin:4px 0 0;opacity:0.8;font-size:0.9rem}';
@@ -786,31 +799,32 @@ function exportPDFReport() {
     html += '</style></head><body>';
 
     html += '<div class="header">';
-    html += '<h1>📊 تقرير سادن المسجد</h1>';
-    html += '<p>تاريخ الإصدار: ' + date + (currentMosque ? ' • ' + escapeHtml(currentMosque.name) : '') + '</p>';
+    html += '<h1>📊 ' + t('reportMainTitle') + '</h1>';
+    var mosqueName = (currentMosque && typeof currentMosque === 'object' && currentMosque.name) ? currentMosque.name : (typeof currentMosque === 'string' ? currentMosque : '');
+    html += '<p>' + t('reportIssuedAt') + ': ' + date + (mosqueName ? ' • ' + escapeHtml(mosqueName) : '') + '</p>';
     html += '</div>';
 
     html += '<div class="grid">';
-    html += '<div class="card green"><div class="label">إجمالي الإيرادات</div><div class="num">' + formatCurrency(inc) + '</div></div>';
-    html += '<div class="card red"><div class="label">إجمالي المصروفات</div><div class="num">' + formatCurrency(exp) + '</div></div>';
-    html += '<div class="card"><div class="label">الرصيد الصافي</div><div class="num" style="color:' + (inc-exp>=0?'#10b981':'#ef4444') + '">' + formatCurrency(inc - exp) + '</div></div>';
-    html += '<div class="card yellow"><div class="label">تكاليف الصيانة</div><div class="num">' + formatCurrency(totalMaintCost) + '</div></div>';
-    html += '<div class="card red"><div class="label">أعطال مفتوحة</div><div class="num">' + open + '</div></div>';
-    html += '<div class="card green"><div class="label">أعطال تم إصلاحها</div><div class="num">' + resolved + '</div></div>';
+    html += '<div class="card green"><div class="label">' + t('reportTotalIncome') + '</div><div class="num">' + formatCurrency(inc) + '</div></div>';
+    html += '<div class="card red"><div class="label">' + t('reportTotalExpense') + '</div><div class="num">' + formatCurrency(exp) + '</div></div>';
+    html += '<div class="card"><div class="label">' + t('reportNetBalance') + '</div><div class="num" style="color:' + (inc-exp>=0?'#10b981':'#ef4444') + '">' + formatCurrency(inc - exp) + '</div></div>';
+    html += '<div class="card yellow"><div class="label">' + t('printTotalCost') + '</div><div class="num">' + formatCurrency(totalMaintCost) + '</div></div>';
+    html += '<div class="card red"><div class="label">' + t('printPending') + '</div><div class="num">' + open + '</div></div>';
+    html += '<div class="card green"><div class="label">' + t('printFixed') + '</div><div class="num">' + resolved + '</div></div>';
     html += '</div>';
 
     if (topDevice) {
       html += '<div style="background:white;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:20px;">';
-      html += '<div style="font-size:0.8rem;color:#64748b;">أكثر جهاز عطلاً</div>';
-      html += '<div style="font-size:1.1rem;font-weight:700;color:#ef4444;margin-top:4px;">⚠️ ' + escapeHtml(topDevice) + ' <span style="font-size:0.8rem;color:#64748b;">(' + deviceMap[topDevice] + ' مرة)</span></div>';
+      html += '<div style="font-size:0.8rem;color:#64748b;">' + t('reportMostFaulty') + '</div>';
+      html += '<div style="font-size:1.1rem;font-weight:700;color:#ef4444;margin-top:4px;">⚠️ ' + escapeHtml(topDevice) + ' <span style="font-size:0.8rem;color:#64748b;">(' + deviceMap[topDevice] + ' ' + t('reportTimes') + ')</span></div>';
       html += '</div>';
     }
 
     // Open issues table
     var openIssues = issues.filter(function(i) { return i.status !== 'resolved' && !i.archived; });
     if (openIssues.length > 0) {
-      html += '<div class="section-title">🔴 الأعطال المفتوحة (' + openIssues.length + ')</div>';
-      html += '<table><thead><tr><th>الموقع / الجهاز</th><th>الوصف</th><th>الفني</th><th>التاريخ</th></tr></thead><tbody>';
+      html += '<div class="section-title">🔴 ' + t('issuePending') + ' (' + openIssues.length + ')</div>';
+      html += '<table><thead><tr><th>' + t('issueLocation') + ' / ' + t('issueEquip') + '</th><th>' + t('issueDesc') + '</th><th>' + t('techName') + '</th><th>' + t('taskDue') + '</th></tr></thead><tbody>';
       openIssues.forEach(function(i) {
         html += '<tr><td><strong>' + escapeHtml(i.location) + '</strong>' + (i.equipment ? '<br><small>' + escapeHtml(i.equipment) + '</small>' : '') + '</td>';
         html += '<td>' + escapeHtml(i.desc) + '</td>';
@@ -823,23 +837,73 @@ function exportPDFReport() {
     // Equipment summary
     var activeEq = equipment.filter(function(e) { return e.status !== 'archived'; });
     if (activeEq.length > 0) {
-      html += '<div class="section-title">🔧 ملخص المعدات (' + activeEq.length + ')</div>';
-      html += '<table><thead><tr><th>الجهاز</th><th>الموقع</th><th>القيمة</th><th>الصيانة القادمة</th></tr></thead><tbody>';
+      html += '<div class="section-title">🔧 ' + t('tabInventory') + ' (' + activeEq.length + ')</div>';
+      html += '<table><thead><tr><th>' + t('equipName') + '</th><th>' + t('location') + '</th><th>' + t('estimatedValue') + '</th><th>' + t('nextMaintenance') + '</th></tr></thead><tbody>';
       activeEq.forEach(function(e) {
         var isOverdue = e.next && new Date(e.next) < new Date();
         html += '<tr><td><strong>' + escapeHtml(e.name) + '</strong></td>';
         html += '<td>' + escapeHtml(e.location || '-') + '</td>';
         html += '<td>' + formatCurrency(parseFloat(e.estimatedValue) || 0) + '</td>';
-        html += '<td style="color:' + (isOverdue ? '#ef4444' : '#0f766e') + '">' + (e.next ? (isOverdue ? '⚠️ متأخرة ' : '') + formatDate(e.next) : '-') + '</td></tr>';
+        html += '<td style="color:' + (isOverdue ? '#ef4444' : '#0f766e') + '">' + (e.next ? (isOverdue ? '⚠️ ' + t('late') + ' ' : '') + formatDate(e.next) : '-') + '</td></tr>';
       });
       html += '</tbody></table>';
     }
 
-    html += '<div class="footer">تم إصدار هذا التقرير تلقائياً بواسطة نظام سادن المسجد • ' + new Date().toLocaleString('ar-SA') + '</div>';
-    html += '<br><div style="text-align:center;"><button onclick="window.print()" style="background:#0f766e;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:1rem;cursor:pointer;margin-left:10px;">🖨️ طباعة</button><button onclick="window.close()" style="background:#64748b;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:1rem;cursor:pointer;">إغلاق</button></div>';
+    html += '<div class="footer">' + t('reportFooterText') + ' • ' + new Date().toLocaleString(currentLang === 'ar' ? 'ar-SA' : 'en-US') + '</div>';
+    html += '<br><div style="text-align:center;"><button onclick="window.print()" style="background:#0f766e;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:1rem;cursor:pointer;margin-left:10px;">🖨️ ' + t('qrPrint') + '</button><button onclick="window.close()" style="background:#64748b;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:1rem;cursor:pointer;">' + t('close') + '</button></div>';
     html += '</body></html>';
 
     win.document.write(html);
     win.document.close();
   });
 }
+
+function showOnboardingGuide() {
+  var modal = document.getElementById('universal-modal');
+  var content = document.getElementById('modal-content');
+  if (!modal || !content) return;
+
+  var html = '<div class="onboarding-container">';
+  html += '<div class="onboarding-logo"><i class="fas fa-mosque"></i></div>';
+  html += '<h2 style="font-size:1.8rem; font-weight:800; margin-bottom:0.5rem; color:var(--primary);">' + t('welcomeTitle') + '</h2>';
+  html += '<p style="color:var(--text-muted); font-size:1rem; margin-bottom:2rem;">' + t('welcomeSubtitle') + '</p>';
+  
+  html += '<div class="onboarding-steps">';
+  
+  // Step 1
+  html += '<div class="onboarding-step">';
+  html += '<div class="onboarding-icon-wrap"><i class="fas fa-plus-circle"></i></div>';
+  html += '<div class="onboarding-step-content">';
+  html += '<h4>' + t('onboardingStep1Title') + '</h4>';
+  html += '<p>' + t('onboardingStep1Desc') + '</p>';
+  html += '</div></div>';
+  
+  // Step 2
+  html += '<div class="onboarding-step">';
+  html += '<div class="onboarding-icon-wrap"><i class="fas fa-qrcode"></i></div>';
+  html += '<div class="onboarding-step-content">';
+  html += '<h4>' + t('onboardingStep2Title') + '</h4>';
+  html += '<p>' + t('onboardingStep2Desc') + '</p>';
+  html += '</div></div>';
+  
+  // Step 3
+  html += '<div class="onboarding-step">';
+  html += '<div class="onboarding-icon-wrap"><i class="fas fa-chart-line"></i></div>';
+  html += '<div class="onboarding-step-content">';
+  html += '<h4>' + t('onboardingStep3Title') + '</h4>';
+  html += '<p>' + t('onboardingStep3Desc') + '</p>';
+  html += '</div></div>';
+  
+  html += '</div>'; // end steps
+
+  html += '<div class="onboarding-actions">';
+  html += '<button onclick="openMosqueModal(); closeModal();" class="btn btn-primary btn-full" style="padding:1.2rem; font-size:1.1rem;"><i class="fas fa-arrow-left"></i> ' + t('getStartedBtn') + '</button>';
+  html += '<button onclick="switchTab(\'settings\'); closeModal();" class="btn btn-outline btn-full"><i class="fas fa-upload"></i> ' + t('restoreDataBtn') + '</button>';
+  html += '</div>';
+
+  html += '</div>';
+
+  content.innerHTML = html;
+  modal.style.display = 'flex';
+}
+

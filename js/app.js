@@ -103,8 +103,8 @@ window.addEventListener('DOMContentLoaded', function() {
     }
   }).then(function() {
     if (!currentMosque && mosqueConfig.mosques.length === 0) {
-      console.log('No mosques found, will prompt user to setup');
-      openMosqueModal();
+      console.log('No mosques found, showing onboarding guide');
+      showOnboardingGuide();
     }
     return App.refresh();
   }).then(function() {

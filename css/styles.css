@@ -941,3 +941,95 @@ canvas#financeChart { max-height: 280px; width: 100%; }
 .text-warning { color: var(--warning) !important; }
 .text-success { color: var(--success) !important; }
 .text-muted { color: var(--text-muted) !important; }
+
+/* Onboarding Guide */
+.onboarding-container {
+  text-align: center;
+  padding: 1rem 0;
+  animation: onboardingFadeIn 0.8s ease-out;
+}
+
+@keyframes onboardingFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.onboarding-logo {
+  font-size: 4rem;
+  color: var(--primary);
+  margin-bottom: 1.5rem;
+  filter: drop-shadow(0 10px 15px var(--primary-glow));
+  animation: onboardingPulse 2s infinite ease-in-out;
+}
+
+@keyframes onboardingPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.onboarding-steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin: 2.5rem 0;
+  text-align: start;
+}
+
+.onboarding-step {
+  display: flex;
+  gap: 1.2rem;
+  align-items: flex-start;
+  padding: 1.2rem;
+  background: var(--surface-soft);
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.onboarding-step:hover {
+  background: var(--glass-bg);
+  transform: translateX(5px);
+  border-color: var(--primary);
+}
+
+.onboarding-icon-wrap {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  box-shadow: 0 8px 16px var(--primary-glow);
+}
+
+.onboarding-step-content h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--primary);
+}
+
+.onboarding-step-content p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.onboarding-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 2rem;
+}
+
+@media (min-width: 600px) {
+  .onboarding-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
