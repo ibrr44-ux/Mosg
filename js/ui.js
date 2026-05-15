@@ -32,7 +32,7 @@ function showEquipmentDetail(eq) {
   html += '<div class="detail-header">';
   html += '<div id="eq-detail-qr" class="qr-small"></div>';
   html += '<div><h2 style="font-size:1.3rem;margin-bottom:4px;">' + escapeHtml(eq.name) + (isArchived ? ' <span class="badge-modern" style="background:var(--warning);color:white">مؤرشف</span>' : '') + '</h2><div style="font-family:monospace;background:var(--primary-glow);padding:4px 8px;border-radius:4px;display:inline-block;color:var(--primary);font-weight:bold;letter-spacing:1px;">' + escapeHtml(eq.uniqueId) + '</div></div>';
-  html += '<div style="margin-left:auto;text-align:center;"><button onclick="openQRPrint(' + JSON.stringify(String(eq.id)) + ')" class="btn btn-outline"><i class="fas fa-qrcode"></i> ' + t('qrPrint') + '</button></div>';
+  html += '<div style="margin-left:auto;text-align:center;"><button onclick=\'directExportQR(' + JSON.stringify(String(eq.id)) + ')\' class="btn btn-primary" style="gap:6px;"><i class="fas fa-file-image"></i> ' + (currentLang === 'ar' ? 'تصدير باركود' : 'Export QR') + '</button></div>';
   html += '</div>';
 
   html += '<div class="detail-info-grid">';
